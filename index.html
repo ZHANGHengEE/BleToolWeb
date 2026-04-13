@@ -484,7 +484,7 @@
           <select id="lineEnding" class="select">
             <option value="">结尾：无</option>
             <option value="\n">结尾：LF</option>
-            <option value="\r\n">结尾：CRLF</option>
+            <option value="\r\n" selected>结尾：CRLF</option>
           </select>
           <button class="btn success" id="sendBtn">发送</button>
         </div>
@@ -777,16 +777,26 @@
         .replace(/'/g, '&#39;');
     }
 
-    function parseValue(bytes) {
-      if (!bytes || !bytes.length) return '';
-      const arr = Array.from(bytes);
-      const hex = arr.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
-      let ascii = '';
-      try {
-        ascii = new TextDecoder('utf-8', { fatal: false }).decode(bytes).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-      } catch (_) {}
-      return el.logHex.checked ? hex : (ascii?.trim() ? `${ascii}  [HEX: ${hex}]` : hex);
-    }
+	function parseValue(bytes) {
+	  if (!bytes || !bytes.length) return '';
+
+	  const arr = Array.from(bytes);
+	  const hex = arr.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+
+	  let ascii = '';
+	  try {
+		ascii = new TextDecoder('utf-8', { fatal: false })
+		  .decode(bytes)
+		  .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+	  } catch (_) {}
+
+	  // ⭐核心修改
+	  if (el.logHex.checked) {
+		return hex;   // 只显示 HEX
+	  } else {
+		return ascii || '';   // 只显示字符串（没有就空）
+	  }
+}
 
     function encodePayload(text, mode, ending) {
       let bytes;
