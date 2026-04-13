@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>蓝牙网页助手（紧凑版）</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --panel-2: #f8faff;
+      --border: #dfe6f2;
+      --text: #182433;
+      --muted: #6c7a90;
+      --primary: #2f80ed;
+      --success: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 4px 14px rgba(20, 35, 70, 0.08);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --gap: 10px;
+      --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 360px 0.9fr 600px;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .left, .right {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 0;
+    }
+
+    .left {
+      display: block;
+      overflow-y: auto;
+      padding-bottom: 10px;
+    }
+
+    .right {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+      max-width: 900px;
+    }
+
+    .logs-panel {
+      min-width: 380px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    .section {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section:last-child { border-bottom: none; }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .toolbar, .row, .inline-controls, .status-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .card-mini {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .btn, .select, .input, .textarea {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      height: 34px;
+    }
+
+    .btn {
+      padding: 0 12px;
+      cursor: pointer;
+      background: #fff;
+      transition: 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { border-color: #b8c7df; transform: translateY(-1px); }
+    .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn.success { background: var(--success); color: #fff; border-color: var(--success); }
+    .btn.warn { background: var(--warn); color: #fff; border-color: var(--warn); }
+    .btn.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn.ghost { background: var(--panel-2); }
+    .btn.tiny { height: 28px; padding: 0 8px; font-size: 12px; }
+
+    .select, .input {
+      padding: 0 10px;
+      min-width: 0;
+    }
+    .textarea {
+      height: 74px;
+      width: 100%;
+      padding: 8px 10px;
+      resize: vertical;
+      min-height: 60px;
+      max-height: 140px;
+    }
+
+    .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--muted);
+      user-select: none;
+    }
+
+    .device-list, .log-box, .service-list {
+      overflow: auto;
+      min-height: 0;
+    }
+
+    .device-list { padding: 8px; max-height: 300px; overflow-y: auto; }
+    .device-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      align-items: center;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+    .device-item:hover { border-color: #a9c2ea; }
+    .device-item.active { border-color: var(--primary); background: #eef5ff; }
+    .device-name {
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1.2;
+      word-break: break-all;
+    }
+    .device-meta {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      margin-top: 3px;
+      word-break: break-all;
+    }
+    .rssi {
+      font-size: 12px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #edf4ff;
+      color: var(--primary);
+      border: 1px solid #d7e8ff;
+    }
+
+    .header-right {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .device-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      min-height: 34px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #cbd5e1;
+    }
+    .dot.connected { background: var(--success); box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12); }
+
+    .service-list {
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .service-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel-2);
+      padding: 8px;
+    }
+
+    .service-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .uuid-main {
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.5px;
+    }
+    .uuid-sub {
+      margin-top: 3px;
+      font-size: 12px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .char-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .char-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .char-title {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+    .char-name {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+      word-break: break-all;
+    }
+    .char-props {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #4b5563;
+      line-height: 1.4;
+    }
+.char-value {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  background: #f8fbff;
+  border: 1px dashed #d5e7ff;
+  border-radius: 8px;
+  padding: 6px 8px;
+
+  /* ⭐核心控制宽度 */
+  width: 160%;
+  max-width: 160%;
+
+  /* ⭐防止撑宽 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+    .char-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+      align-items: center;
+      min-width: 150px;
+    }
+
+    .desc-box {
+      margin-top: 6px;
+      padding: 6px 8px;
+      background: #fcfdff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    .mono { font-family: Consolas, Monaco, monospace; }
+
+    .send-grid {
+      display: grid;
+      grid-template-columns: 1fr 110px 110px;
+      gap: 8px;
+    }
+
+    .log-box {
+      padding: 8px 10px 10px;
+      background: #fbfcfe;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .log-line {
+      padding: 2px 0;
+      border-bottom: 1px dashed #eef2f7;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 14px;
+      height: 100%;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .sticky-hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    @media (max-width: 1400px) {
+      .app { grid-template-columns: 360px 1fr 300px; }
+    }
+
+    @media (max-width: 1200px) {
+      .app { grid-template-columns: 340px 1fr; }
+      .send-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .app {
+        height: auto;
+        min-height: 100vh;
+        grid-template-columns: 1fr;
+      }
+      .left, .right { min-height: 420px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="left">
+      <div class="section">
+        <div class="title-row">
+          <div>
+            <div class="title">蓝牙网页助手</div>
+            <div class="sub">紧凑版 · Web Bluetooth</div>
+          </div>
+          <div class="toolbar">
+            <button class="btn primary" id="scanBtn">扫描</button>
+            <button class="btn danger" id="disconnectBtn">断开</button>
+          </div>
+        </div>
+
+        <div class="status-grid">
+          <div class="card-mini small">当前设备：<span id="currentDeviceName" class="mono">未连接</span></div>
+          <div class="card-mini small">连接状态：<span id="connectionState">未连接</span></div>
+          <div class="card-mini small">已发现服务：<span id="serviceCount">0</span>　特征：<span id="charCount">0</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="title-row">
+          <div class="title">连接</div>
+          <div class="sub">默认按信号强度排序</div>
+        </div>
+        <div class="row">
+          <label class="check"><input type="checkbox" id="acceptAllDevices" /> 接受所有设备</label>
+          <label class="check"><input type="checkbox" id="optionalInfoServices" checked /> 附加常用信息服务</label>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <input id="nameFilter" class="input" placeholder="名称前缀过滤" value="CityU_" style="flex:1; min-width:0;" />
+          <button class="btn ghost" id="clearDevicesBtn">清空列表</button>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn ghost" id="mtuBtn">设置 MTU</button>
+          <input id="mtuInput" class="input" type="number" min="23" max="517" value="247" style="width:100px;" />
+          <span class="sub">浏览器端通常受系统/实现限制</span>
+        </div>
+        <div class="sticky-hint">说明：默认通过“名称前缀过滤”筛选设备，避免配对框里出现大量“未知或不支持的设备”。若勾选“接受所有设备”，系统配对框会再次显示附近所有 BLE 设备。</div>
+      </div>
+
+      <div class="section" style="padding-bottom:0;">
+        <div class="title-row" style="padding:0 0 8px 0; margin-bottom:0;">
+          <div class="title">设备列表</div>
+          <div class="sub">左侧过长可滚动</div>
+        </div>
+      </div>
+      <div class="device-list" id="deviceList"></div>
+
+      <div class="section">
+        <div class="title-row">
+          <div class="title">工具</div>
+          <div class="sub">全部放左侧</div>
+        </div>
+
+        <label class="label" for="writeCharSelect">发送目标特征</label>
+        <select id="writeCharSelect" class="select" style="width:100%; margin-bottom:8px;"></select>
+
+        <div class="send-grid">
+          <select id="sendEncoding" class="select">
+            <option value="hex">HEX</option>
+            <option value="ascii">ASCII</option>
+            <option value="utf8">UTF-8</option>
+          </select>
+          <select id="lineEnding" class="select">
+            <option value="">结尾：无</option>
+            <option value="\n">结尾：LF</option>
+            <option value="\r\n">结尾：CRLF</option>
+          </select>
+          <button class="btn success" id="sendBtn">发送</button>
+        </div>
+        <textarea id="sendData" class="textarea" placeholder="输入发送数据，例如：01 AB E1 或 hello"></textarea>
+      </div>
+
+          </aside>
+
+    <main class="right">
+      <div class="header-right">
+        <div class="device-pill">
+          <span id="deviceDot" class="dot"></span>
+          <span id="mainDeviceTitle">未连接设备</span>
+        </div>
+        <div class="toolbar">
+          <span class="sub">所有服务与特征平铺显示，不折叠</span>
+        </div>
+      </div>
+      <div class="service-list" id="serviceList">
+        <div class="empty">请先点击左上角“扫描”并连接蓝牙设备。<br>连接后，这里会紧凑显示所有服务及其特征，包括自定义服务如 FFF0 下的 FFF1 / FFF2。</div>
+      </div>
+    </main>
+
+    <aside class="logs-panel">
+      <div class="section" style="padding-bottom:0;">
+        <div class="title-row" style="margin-bottom:6px;">
+          <div class="title">日志
+            <label class="check" style="margin-left:6px;"><input type="checkbox" id="logHex" /> Hex</label>
+            <label class="check"><input type="checkbox" id="logTimestamp" checked /> 时间戳</label>
+          </div>
+          <div class="toolbar">
+            <button class="btn ghost tiny" id="exportLogBtn">导出数据</button>
+            <button class="btn ghost tiny" id="clearLogBtn">清空</button>
+          </div>
+        </div>
+      </div>
+      <div class="log-box" id="logBox"></div>
+    </aside>
+  </div>
+
+  <script>
+    const state = {
+      devices: [],
+      currentDevice: null,
+      server: null,
+      services: [],
+      characteristics: [],
+      notifyMap: new Map(),
+      writeCandidates: [],
+      logs: []
+    };
+
+    const el = {
+      scanBtn: document.getElementById('scanBtn'),
+      disconnectBtn: document.getElementById('disconnectBtn'),
+      clearDevicesBtn: document.getElementById('clearDevicesBtn'),
+      exportLogBtn: document.getElementById('exportLogBtn'),
+      clearLogBtn: document.getElementById('clearLogBtn'),
+      mtuBtn: document.getElementById('mtuBtn'),
+      mtuInput: document.getElementById('mtuInput'),
+      sendBtn: document.getElementById('sendBtn'),
+      deviceList: document.getElementById('deviceList'),
+      serviceList: document.getElementById('serviceList'),
+      logBox: document.getElementById('logBox'),
+      currentDeviceName: document.getElementById('currentDeviceName'),
+      connectionState: document.getElementById('connectionState'),
+      serviceCount: document.getElementById('serviceCount'),
+      charCount: document.getElementById('charCount'),
+      writeCharSelect: document.getElementById('writeCharSelect'),
+      sendData: document.getElementById('sendData'),
+      sendEncoding: document.getElementById('sendEncoding'),
+      lineEnding: document.getElementById('lineEnding'),
+      mainDeviceTitle: document.getElementById('mainDeviceTitle'),
+      deviceDot: document.getElementById('deviceDot'),
+      acceptAllDevices: document.getElementById('acceptAllDevices'),
+      optionalInfoServices: document.getElementById('optionalInfoServices'),
+      nameFilter: document.getElementById('nameFilter'),
+      logHex: document.getElementById('logHex'),
+      logTimestamp: document.getElementById('logTimestamp')
+    };
+
+    const KNOWN_NAMES = {
+      '180a': 'Device Information',
+      '180f': 'Battery Service',
+      '1800': 'Generic Access',
+      '1801': 'Generic Attribute',
+      '2a23': 'System ID',
+      '2a24': 'Model Number String',
+      '2a25': 'Serial Number String',
+      '2a26': 'Firmware Revision String',
+      '2a27': 'Hardware Revision String',
+      '2a28': 'Software Revision String',
+      '2a29': 'Manufacturer Name String',
+      '2a2a': 'IEEE 11073-20601 Regulatory Certification Data List',
+      '2a50': 'PnP ID',
+      '2902': 'Client Characteristic Configuration'
+    };
+
+    function shortUuid(uuid) {
+      if (!uuid) return '未知';
+      const s = String(uuid).toLowerCase();
+      const m = s.match(/^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/);
+      return m ? m[1].toUpperCase() : s.toUpperCase();
+    }
+
+    function nameOf(uuid) {
+      const key = shortUuid(uuid).toLowerCase();
+      return KNOWN_NAMES[key] || '自定义特征/服务';
+    }
+
+    function propText(props) {
+      const labels = [];
+      if (props.read) labels.push('Read(读)');
+      if (props.write) labels.push('Write(写)');
+      if (props.writeWithoutResponse) labels.push('WriteWithoutResponse(无响应写)');
+      if (props.notify) labels.push('Notify(通知)');
+      if (props.indicate) labels.push('Indicate(指示)');
+      if (props.broadcast) labels.push('Broadcast');
+      if (props.authenticatedSignedWrites) labels.push('SignedWrite');
+      if (props.reliableWrite) labels.push('ReliableWrite');
+      if (props.writableAuxiliaries) labels.push('WritableAux');
+      return labels.join(', ') || '无';
+    }
+
+    function ts() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const ms = String(d.getMilliseconds()).padStart(3, '0');
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${ms}`;
+    }
+
+    function log(msg, type = 'info') {
+      const prefix = el.logTimestamp.checked ? `[${ts()}] ` : '';
+      const line = `${prefix}${msg}`;
+      state.logs.push(line);
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.textContent = line;
+      if (type === 'error') div.style.color = '#d7263d';
+      if (type === 'success') div.style.color = '#0f9d58';
+      if (type === 'warn') div.style.color = '#b7791f';
+      el.logBox.appendChild(div);
+      el.logBox.scrollTop = el.logBox.scrollHeight;
+    }
+
+    function renderDevices() {
+      const keyword = el.nameFilter.value.trim().toLowerCase();
+      const arr = [...state.devices]
+        .filter(d => !keyword || (d.name || '').toLowerCase().includes(keyword) || (d.id || '').toLowerCase().includes(keyword))
+        .sort((a, b) => (b.rssi ?? -999) - (a.rssi ?? -999));
+
+      el.deviceList.innerHTML = '';
+      if (!arr.length) {
+        el.deviceList.innerHTML = '<div class="empty">暂无设备。点击“扫描”开始。</div>';
+        return;
+      }
+
+      for (const item of arr) {
+        const div = document.createElement('div');
+        div.className = `device-item ${state.currentDevice?.id === item.id ? 'active' : ''}`;
+        div.innerHTML = `
+          <div>
+            <div class="device-name">${escapeHtml(item.name || '未命名设备')}</div>
+            <div class="device-meta mono">ID: ${escapeHtml(item.id || 'N/A')}</div>
+            <div class="device-meta">${item.connected ? '已连接' : '未连接'}</div>
+          </div>
+          <div class="rssi">${item.rssi ?? 'N/A'} dBm</div>
+        `;
+        div.onclick = () => connectToDevice(item.device);
+        el.deviceList.appendChild(div);
+      }
+    }
+
+    function renderWriteCandidates() {
+      el.writeCharSelect.innerHTML = '';
+      if (!state.writeCandidates.length) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '无可写特征';
+        el.writeCharSelect.appendChild(opt);
+        return;
+      }
+      for (const c of state.writeCandidates) {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.serviceShort} / ${c.charShort} (${c.writeType})`;
+        el.writeCharSelect.appendChild(opt);
+      }
+    }
+
+    function renderServices() {
+      el.serviceCount.textContent = state.services.length;
+      el.charCount.textContent = state.characteristics.length;
+
+      if (!state.services.length) {
+        el.serviceList.innerHTML = '<div class="empty">当前没有服务数据。</div>';
+        return;
+      }
+
+      const pieces = [];
+      for (const svc of state.services) {
+        const charsHtml = svc.characteristics.map(ch => {
+          const btns = [];
+          if (ch.properties.read) {
+            btns.push(`<button class="btn tiny primary" data-act="read" data-id="${ch.id}">读</button>`);
+          }
+          if (ch.properties.notify || ch.properties.indicate) {
+            if (ch.notifying) {
+              btns.push(`<button class="btn tiny success" data-act="stopNotify" data-id="${ch.id}">停通知</button>`);
+            } else {
+              btns.push(`<button class="btn tiny success" data-act="notify" data-id="${ch.id}">订阅</button>`);
+            }
+          }
+          if (ch.properties.write || ch.properties.writeWithoutResponse) {
+            btns.push(`<button class="btn tiny warn" data-act="selectWrite" data-id="${ch.id}">设为发送</button>`);
+          }
+
+          return `
+            <div class="char-card">
+              <div>
+                <div class="char-title mono">${escapeHtml(ch.shortUuid)}</div>
+                <div class="char-name">${escapeHtml(ch.name)}</div>
+                <div class="char-props">属性：${escapeHtml(ch.propText)}</div>
+                ${ch.valueText ? `<div class="char-value"><b>值：</b> ${escapeHtml(ch.valueText)}</div>` : ''}
+                ${ch.descriptors?.length ? `
+                  <div class="desc-box">
+                    描述符：${ch.descriptors.map(d => `${escapeHtml(d.shortUuid)} ${escapeHtml(d.name)}`).join('；')}
+                  </div>` : ''}
+              </div>
+              <div class="char-actions">${btns.join('')}</div>
+            </div>
+          `;
+        }).join('');
+
+        pieces.push(`
+          <div class="service-card">
+            <div class="service-head">
+              <div>
+                <div class="uuid-main mono">${escapeHtml(svc.shortUuid)}</div>
+                <div class="uuid-sub">${escapeHtml(svc.name)} · ${escapeHtml(svc.uuid)}</div>
+              </div>
+              <div class="sub">特征 ${svc.characteristics.length} 个</div>
+            </div>
+            <div class="char-list">${charsHtml}</div>
+          </div>
+        `);
+      }
+
+      el.serviceList.innerHTML = pieces.join('');
+      bindActionButtons();
+    }
+
+    function bindActionButtons() {
+      el.serviceList.querySelectorAll('button[data-act]').forEach(btn => {
+        btn.onclick = async () => {
+          const act = btn.dataset.act;
+          const id = btn.dataset.id;
+          const target = state.characteristics.find(x => x.id === id);
+          if (!target) return;
+          try {
+            if (act === 'read') await readCharacteristic(target);
+            else if (act === 'notify') await startNotify(target);
+            else if (act === 'stopNotify') await stopNotify(target);
+            else if (act === 'selectWrite') {
+              el.writeCharSelect.value = id;
+              log(`已选择发送目标：${target.serviceShort} / ${target.shortUuid}`);
+            }
+          } catch (e) {
+            log(`${act} 失败：${e.message || e}`, 'error');
+          }
+        };
+      });
+    }
+
+    function updateHeader() {
+      const name = state.currentDevice?.name || '未连接设备';
+      el.currentDeviceName.textContent = name;
+      el.mainDeviceTitle.textContent = name;
+      const connected = !!state.currentDevice?.gatt?.connected;
+      el.connectionState.textContent = connected ? '已连接' : '未连接';
+      el.deviceDot.classList.toggle('connected', connected);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function parseValue(bytes) {
+      if (!bytes || !bytes.length) return '';
+      const arr = Array.from(bytes);
+      const hex = arr.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+      let ascii = '';
+      try {
+        ascii = new TextDecoder('utf-8', { fatal: false }).decode(bytes).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+      } catch (_) {}
+      return el.logHex.checked ? hex : (ascii?.trim() ? `${ascii}  [HEX: ${hex}]` : hex);
+    }
+
+    function encodePayload(text, mode, ending) {
+      let bytes;
+      if (mode === 'hex') {
+        const cleaned = text.replace(/0x/gi, ' ').replace(/[^0-9a-fA-F]/g, ' ').trim();
+        if (!cleaned) throw new Error('HEX 发送内容为空');
+        const parts = cleaned.split(/\s+/).filter(Boolean);
+        bytes = new Uint8Array(parts.map(p => {
+          if (p.length > 2) throw new Error(`非法 HEX 字节: ${p}`);
+          const v = parseInt(p, 16);
+          if (Number.isNaN(v)) throw new Error(`非法 HEX 字节: ${p}`);
+          return v;
+        }));
+      } else {
+        const encoder = new TextEncoder();
+        bytes = encoder.encode(text);
+      }
+
+      if (ending) {
+        const encoder = new TextEncoder();
+        const endBytes = encoder.encode(ending === '\n' ? '\n' : '\r\n');
+        const out = new Uint8Array(bytes.length + endBytes.length);
+        out.set(bytes, 0);
+        out.set(endBytes, bytes.length);
+        return out;
+      }
+      return bytes;
+    }
+
+    async function scanDevice() {
+      if (!navigator.bluetooth) {
+        log('当前浏览器不支持 Web Bluetooth，请使用 Chrome / Edge，并在 HTTPS 或 localhost 下运行。', 'error');
+        return;
+      }
+
+      try {
+        const optionalServices = [
+          'device_information',
+          'battery_service',
+          0x1800,
+          0x1801,
+          0x180A,
+          0x180F,
+          0xFFF0,
+          0xFFE0,
+          0xFFE1,
+          0xFFF1,
+          0xFFF2
+        ];
+
+        const options = {
+          optionalServices: el.optionalInfoServices.checked ? optionalServices : [0xFFF0, 0xFFF1, 0xFFF2]
+        };
+
+        if (el.acceptAllDevices.checked) {
+          options.acceptAllDevices = true;
+        } else {
+          const name = (el.nameFilter.value || 'CityU_').trim();
+          options.filters = [
+            { namePrefix: name }
+          ];
+          log(`已启用过滤，仅显示名称前缀为 ${name} 的设备。`);
+        }
+
+        const device = await navigator.bluetooth.requestDevice(options);
+        device.addEventListener('gattserverdisconnected', onDisconnected);
+
+        let existing = state.devices.find(d => d.id === device.id);
+        if (!existing) {
+          existing = {
+            id: device.id,
+            name: device.name || '未命名设备',
+            device,
+            rssi: randomFakeRssi(),
+            connected: false
+          };
+          state.devices.push(existing);
+        } else {
+          existing.device = device;
+        }
+
+        log(`已选择设备：${existing.name}`);
+        renderDevices();
+        await connectToDevice(device);
+      } catch (e) {
+        if (String(e).includes('User cancelled')) {
+          log('用户取消扫描。', 'warn');
+        } else {
+          log(`扫描失败：${e.message || e}`, 'error');
+        }
+      }
+    }
+
+    function randomFakeRssi() {
+      return -40 - Math.floor(Math.random() * 45);
+    }
+
+    async function connectToDevice(device) {
+      if (!device) return;
+      try {
+        if (device.gatt.connected) {
+          log(`设备已连接：${device.name || device.id}`);
+        } else {
+          log(`正在连接：${device.name || device.id} ...`);
+          await device.gatt.connect();
+          log(`连接成功：${device.name || device.id}`, 'success');
+        }
+
+        state.currentDevice = device;
+        state.server = device.gatt;
+        const rec = state.devices.find(d => d.id === device.id);
+        if (rec) rec.connected = true;
+        updateHeader();
+        renderDevices();
+        await discoverAll(device.gatt);
+      } catch (e) {
+        log(`连接失败：${e.message || e}`, 'error');
+      }
+    }
+
+    async function discoverAll(server) {
+      state.services = [];
+      state.characteristics = [];
+      state.writeCandidates = [];
+      renderWriteCandidates();
+      renderServices();
+
+      log('开始发现服务与特征...');
+      const primaryServices = await server.getPrimaryServices();
+
+      for (const svc of primaryServices) {
+        const svcInfo = {
+          id: crypto.randomUUID(),
+          uuid: svc.uuid,
+          shortUuid: shortUuid(svc.uuid),
+          name: nameOf(svc.uuid),
+          characteristics: [],
+          raw: svc
+        };
+
+        const chars = await svc.getCharacteristics();
+        for (const ch of chars) {
+          const id = crypto.randomUUID();
+          const descriptors = [];
+          try {
+            const descs = await ch.getDescriptors();
+            for (const d of descs) {
+              descriptors.push({
+                uuid: d.uuid,
+                shortUuid: shortUuid(d.uuid),
+                name: nameOf(d.uuid),
+                raw: d
+              });
+            }
+          } catch (_) {}
+
+          const chInfo = {
+            id,
+            uuid: ch.uuid,
+            shortUuid: shortUuid(ch.uuid),
+            name: nameOf(ch.uuid),
+            properties: ch.properties,
+            propText: propText(ch.properties),
+            valueText: '',
+            notifying: false,
+            descriptors,
+            raw: ch,
+            serviceShort: svcInfo.shortUuid
+          };
+
+          svcInfo.characteristics.push(chInfo);
+          state.characteristics.push(chInfo);
+
+          if (ch.properties.write || ch.properties.writeWithoutResponse) {
+            state.writeCandidates.push({
+              id,
+              serviceShort: svcInfo.shortUuid,
+              charShort: chInfo.shortUuid,
+              writeType: ch.properties.writeWithoutResponse && !ch.properties.write ? 'WriteWithoutResponse' : 'Write'
+            });
+          }
+        }
+
+        state.services.push(svcInfo);
+      }
+
+      renderWriteCandidates();
+      renderServices();
+      updateHeader();
+      log(`发现完成：服务 ${state.services.length} 个，特征 ${state.characteristics.length} 个。`, 'success');
+    }
+
+    async function readCharacteristic(chInfo) {
+      const value = await chInfo.raw.readValue();
+      const bytes = new Uint8Array(value.buffer);
+      chInfo.valueText = parseValue(bytes);
+      renderServices();
+      log(`读取 ${chInfo.serviceShort}/${chInfo.shortUuid}：${chInfo.valueText}`);
+    }
+
+    async function startNotify(chInfo) {
+      const handler = event => {
+        const value = event.target.value;
+        const bytes = new Uint8Array(value.buffer);
+        const text = parseValue(bytes);
+        chInfo.valueText = text;
+        renderServices();
+        log(`通知 ${chInfo.serviceShort}/${chInfo.shortUuid}：${text}`);
+      };
+      await chInfo.raw.startNotifications();
+      chInfo.raw.addEventListener('characteristicvaluechanged', handler);
+      state.notifyMap.set(chInfo.id, handler);
+      chInfo.notifying = true;
+      renderServices();
+      log(`已订阅 ${chInfo.serviceShort}/${chInfo.shortUuid}`, 'success');
+    }
+
+    async function stopNotify(chInfo) {
+      const handler = state.notifyMap.get(chInfo.id);
+      if (handler) chInfo.raw.removeEventListener('characteristicvaluechanged', handler);
+      await chInfo.raw.stopNotifications();
+      state.notifyMap.delete(chInfo.id);
+      chInfo.notifying = false;
+      renderServices();
+      log(`已停止订阅 ${chInfo.serviceShort}/${chInfo.shortUuid}`, 'warn');
+    }
+
+    async function sendData() {
+      const id = el.writeCharSelect.value;
+      const target = state.characteristics.find(x => x.id === id);
+      if (!target) {
+        log('请先选择可写特征。', 'warn');
+        return;
+      }
+      const text = el.sendData.value.trim();
+      if (!text) {
+        log('发送内容为空。', 'warn');
+        return;
+      }
+      const payload = encodePayload(text, el.sendEncoding.value, el.lineEnding.value);
+      if (target.raw.properties.writeWithoutResponse && !target.raw.properties.write) {
+        await target.raw.writeValueWithoutResponse(payload);
+      } else {
+        await target.raw.writeValue(payload);
+      }
+      const hex = Array.from(payload).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+      log(`发送到 ${target.serviceShort}/${target.shortUuid}：${hex}`, 'success');
+    }
+
+    function disconnectCurrent() {
+      try {
+        if (state.currentDevice?.gatt?.connected) {
+          state.currentDevice.gatt.disconnect();
+        }
+      } catch (e) {
+        log(`断开失败：${e.message || e}`, 'error');
+      }
+    }
+
+    function onDisconnected(event) {
+      const device = event.target;
+      const rec = state.devices.find(d => d.id === device.id);
+      if (rec) rec.connected = false;
+      if (state.currentDevice?.id === device.id) {
+        state.server = null;
+        state.services = [];
+        state.characteristics = [];
+        state.writeCandidates = [];
+        renderWriteCandidates();
+        renderServices();
+        updateHeader();
+      }
+      renderDevices();
+      log(`设备已断开：${device.name || device.id}`, 'warn');
+    }
+
+    function exportLogs() {
+      const blob = new Blob([state.logs.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ble_log_${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function clearLogs() {
+      state.logs = [];
+      el.logBox.innerHTML = '';
+    }
+
+    async function setMtu() {
+      const mtu = Number(el.mtuInput.value || 247);
+      if (!state.currentDevice?.gatt?.connected) {
+        log('请先连接设备，再尝试设置 MTU。', 'warn');
+        return;
+      }
+      if (!Number.isInteger(mtu) || mtu < 23 || mtu > 517) {
+        log('MTU 范围应为 23~517。', 'warn');
+        return;
+      }
+      log(`已请求 MTU = ${mtu}。注意：标准 Web Bluetooth 目前通常不直接提供可编程 MTU 设置接口，实际 MTU 往往由操作系统和浏览器协商决定。`, 'warn');
+    }
+
+    el.scanBtn.onclick = scanDevice;
+    el.disconnectBtn.onclick = disconnectCurrent;
+    el.clearDevicesBtn.onclick = () => {
+      state.devices = [];
+      renderDevices();
+      log('已清空设备列表。');
+    };
+    el.exportLogBtn.onclick = exportLogs;
+    el.clearLogBtn.onclick = clearLogs;
+    el.mtuBtn.onclick = async () => {
+      try {
+        await setMtu();
+      } catch (e) {
+        log(`MTU 设置失败：${e.message || e}`, 'error');
+      }
+    };
+    el.sendBtn.onclick = async () => {
+      try {
+        await sendData();
+      } catch (e) {
+        log(`发送失败：${e.message || e}`, 'error');
+      }
+    };
+    el.nameFilter.oninput = renderDevices;
+
+    updateHeader();
+    renderDevices();
+    renderWriteCandidates();
+  </script>
+</body>
+</html>
