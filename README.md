@@ -1,3 +1,5 @@
+Web link: https://zhanghengee.github.io/BleToolWeb/
+
 # 🚀 Bluetooth Web Assistant (Compact)
 
 一个基于 **Web Bluetooth API** 的网页蓝牙调试工具，专为嵌入式开发与 BLE 调试设计。  
